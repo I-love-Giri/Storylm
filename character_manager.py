@@ -1,6 +1,10 @@
-import json
-
-
 def get_characters(story_plan):
-    story_plan_json = json.dumps(story_plan, indent=2)
-    return story_plan_json["characters"]
+    return story_plan["characters"]
+
+
+def find_character(characters, name):
+    for character in characters:
+        if character["name"] == name:
+            return character
+
+    return None
