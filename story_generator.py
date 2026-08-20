@@ -1,9 +1,14 @@
 import json
 
 
-def generate_story(client, story_plan):
+def generate_story(client, story_plan, characters, memory: list | None = None):
 
     story_plan_json = json.dumps(story_plan, indent=2)
+    characters_json = json.dumps(characters, indent=2)
+    if memory:
+        memory_json = json.dumps(memory, indent=2)
+    else:
+        memory_json = "No previous story memory. This is the beginning of the story."
 
     response = client.chat.completions.create(
         model="openrouter/free",
@@ -25,7 +30,17 @@ def generate_story(client, story_plan):
             },
             {
                 "role": "user",
-                "content": f"Here is the story plan:\n\n{story_plan_json}",
+                "content": f"""
+                    Here is the story plan:
+
+                    {story_plan_json}
+
+                    Here are the characters that must remain consistent:
+
+                    {characters_json}
+
+                    Write the complete story.
+                """,
             },
         ],
     )
