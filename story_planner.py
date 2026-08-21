@@ -1,50 +1,68 @@
 import json
+import time
 
 
 def create_story_plan(client, story_idea):
 
-    response = client.chat.completions.create(
-        model="openrouter/free",
-        messages=[
-            {
-                "role": "system",
-                "content": """
-                    You are a professional story planner.
+    max_attempt = 3
 
-                    Create a concise story plan for the given story idea.
+    for attempt in range(1, max_attempt + 1):
+        try:
 
-                    Return ONLY valid JSON.
+            response = client.chat.completions.create(
+                model="openrouter/free",
+                max_tokens=1500,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """
+                            You are a professional story planner.
 
-                    The JSON must contain these fields:
-                    - title
-                    - genre
-                    - setting
-                    - characters
-                    - conflict
-                    - beginning
-                    - middle
-                    - climax
-                    - ending
+                            Create a concise story plan suitable for a 10–12-chapter story based on the given story idea.
 
-                    The characters field must be an array of objects.
-                    Each character object must contain:
-                    - name
-                    - role
-                    - description
+                            Return ONLY valid JSON.
 
-                    Keep the plan focused and practical for a short story.
-                    Do not write the actual story.
-                    Do not use Markdown code blocks.
-                    """,
-            },
-            {
-                "role": "user",
-                "content": f"Story idea: {story_idea}",
-            },
-        ],
-    )
+                            The JSON must contain these fields:
+                            - title
+                            - genre
+                            - setting
+                            - characters
+                            - conflict
+                            - beginning
+                            - middle
+                            - climax
+                            - ending
 
-    return json.loads(response.choices[0].message.content)
+                            The characters field must be an array of objects.
+                            Each character object must contain:
+                            - name
+                            - role
+                            - description
+
+                            Keep the plan focused and practical for a short story.
+                            Do not write the actual story.
+                            Do not use Markdown code blocks.
+                            """,
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Story idea: {story_idea}",
+                    },
+                ],
+            )
+
+            return json.loads(response.choices[0].message.content)
+
+        except Exception as error:
+            if attempt < max_attempt:
+
+                wait_seconds = attempt * 2
+                print(f"Retrying in {wait_seconds} seconds...")
+                time.sleep(wait_seconds)
+            else:
+                raise RuntimeError(
+                    "Could not generate the story plan after 3 attempts."
+                )
 
 
 """
