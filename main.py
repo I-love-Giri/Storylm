@@ -23,6 +23,17 @@ def get_story_idea():
     return input("What kind of story do you want? ")
 
 
+def get_story_mode():
+    print("\n1. Start a new story")
+    print("2. Continue a saved story")
+
+    while True:
+        choice = input("Enter your choice (1 or 2):")
+        if choice in ["1", "2"]:
+            return choice
+        print("Please enter 1 or 2.")
+
+
 if __name__ == "__main__":
     story_idea = get_story_idea()
 
@@ -49,9 +60,9 @@ if __name__ == "__main__":
         print(f"\n--- CHAPTER {chapter} ---\n")
         print(story)
 
-        save_chapter(story_folder, chapter, story)
-
         memory = update_memory(client, story, characters, memory)
+
+        save_chapter(story_folder, chapter, story)
 
         save_memory(story_folder, memory)
 
