@@ -12,6 +12,7 @@ def update_memory(client, story, characters, previous_memory: list | None = None
         previous_memory_json = "No previous memory. This is the beginning of the story."
 
     max_attempts = 3
+    wait_times = [15, 30, 60]
 
     for attempt in range(1, max_attempts + 1):
         try:
@@ -94,7 +95,7 @@ def update_memory(client, story, characters, previous_memory: list | None = None
 
             # A normal/temporary 429 can be retried.
             if attempt < max_attempts:
-                wait_seconds = 2**attempt
+                wait_seconds = wait_times[attempt - 1]
                 print(f"Rate limited. Retrying in {wait_seconds} seconds...")
                 time.sleep(wait_seconds)
             else:
@@ -103,7 +104,7 @@ def update_memory(client, story, characters, previous_memory: list | None = None
         except json.JSONDecodeError as error:
             # The request succeeded, but the model returned invalid JSON.
             if attempt < max_attempts:
-                wait_seconds = 2**attempt
+                wait_seconds = wait_times[attempt - 1]
                 print(
                     f"Model returned invalid JSON. "
                     f"Retrying in {wait_seconds} seconds..."
@@ -115,7 +116,7 @@ def update_memory(client, story, characters, previous_memory: list | None = None
         except Exception as error:
             # Other temporary failures can be retried.
             if attempt < max_attempts:
-                wait_seconds = 2**attempt
+                wait_seconds = wait_times[attempt - 1]
                 # print(f"Request failed: {error}")
                 print(f"Retrying in {wait_seconds} seconds...")
                 time.sleep(wait_seconds)

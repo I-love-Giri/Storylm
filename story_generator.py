@@ -39,6 +39,7 @@ def generate_story(client, story_plan, characters, chapter, memory: list | None 
         """
 
     max_attempt = 3
+    wait_times = [15, 30, 60]
 
     for attempt in range(1, max_attempt + 1):
         try:
@@ -98,7 +99,7 @@ def generate_story(client, story_plan, characters, chapter, memory: list | None 
 
             if attempt < max_attempt:
 
-                wait_seconds = attempt * 2
+                wait_seconds = wait_times[attempt - 1]
                 print(f"Retrying in {wait_seconds} seconds...")
                 time.sleep(wait_seconds)
             else:
