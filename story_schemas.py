@@ -1,4 +1,4 @@
-NARRATOR_SCHEMA = {
+"""NARRATOR_SCHEMA = {
     "name": "narration_script",
     "strict": True,
     "schema": {
@@ -24,4 +24,34 @@ NARRATOR_SCHEMA = {
         "required": ["scenes"],
         "additionalProperties": False,
     },
+}"""
+
+NARRATOR_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "scenes": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "scene_type": {
+                        "type": "STRING",
+                        "enum": ["narration", "dialogue"],
+                    },
+                    "speaker": {
+                        "type": "STRING",
+                    },
+                    "text": {
+                        "type": "STRING",
+                    },
+                },
+                "required": [
+                    "scene_type",
+                    "speaker",
+                    "text",
+                ],
+            },
+        },
+    },
+    "required": ["scenes"],
 }

@@ -99,6 +99,13 @@ def save_memory(story_folder, memory):
     save_json(story_folder / "memory.json", memory)
 
 
+def save_narration_script(story_folder, chapter_number, narration_script):
+
+    narration_file = story_folder / f"narration_chapter_{chapter_number}.json"
+
+    save_json(narration_file, narration_script)
+
+
 """
 the_hills_20260821_143000/
 ├── story_plan.json
