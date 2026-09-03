@@ -1,9 +1,11 @@
 import json
 from character_manager import get_characters
+from emotion_analyzer import analyze_emotions
 from story_generator import generate_story
-from config import client
+from config import client, gemini_client
 from story_memory import update_memory
 from story_planner import create_story_plan
+from narrator_agent import create_narration_script
 from story_storage import (
     create_story_folder,
     list_saved_stories,
@@ -11,6 +13,7 @@ from story_storage import (
     save_chapter,
     save_memory,
     save_story_setup,
+    save_narration_script,
 )
 
 
@@ -104,6 +107,30 @@ if __name__ == "__main__":
 
         print("\n--- UPDATED MEMORY ---\n")
         print(memory)
+        try:
+            narration_script = create_narration_script(
+                gemini_client,
+                story,
+            )
+
+            save_narration_script(
+                story_folder,
+                chapter,
+                narration_script,
+            )
+
+            print("\nNarration script saved.")
+
+            emotion_script = analyze_emotions(
+                gemini_client,
+                narration_script,
+            )
+
+            print("\n--- EMOTION ANALYSIS ---\n")
+            print(json.dumps(emotion_script, indent=2))
+
+        except RuntimeError as error:
+            print(f"\nNarration script was not created: {error}")
 
         chapter += 1
 

@@ -55,3 +55,30 @@ NARRATOR_SCHEMA = {
     },
     "required": ["scenes"],
 }
+
+
+EMOTION_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "emotion": {
+            "type": "STRING",
+            "enum": [
+                "neutral",
+                "joy",
+                "sadness",
+                "anger",
+                "fear",
+                "surprise",
+                "disgust",
+                "tension",
+            ],
+        },
+        "intensity": {"type": "NUMBER", "minimum": 0, "maximum": 1},
+        "pace": {
+            "type": "STRING",
+            "enum": ["very_slow", "slow", "normal", "fast", "very_fast"],
+        },
+        "pause_after": {"type": "NUMBER", "minimum": 0, "maximum": 3},
+    },
+    "required": ["emotion", "intensity", "pace", "pause_after"],
+}
