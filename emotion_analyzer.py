@@ -1,11 +1,11 @@
 import json
+
 from story_schemas import EMOTION_SCHEMA
 
 BATCH_SIZE = 15
 
 
 def analyze_emotions(gemini_client, narration_script):
-
     scenes = narration_script.get("scenes", [])
 
     if not scenes:
@@ -14,10 +14,13 @@ def analyze_emotions(gemini_client, narration_script):
     analyzed_scenes = []
 
     for start in range(0, len(scenes), BATCH_SIZE):
-
         batch = scenes[start : start + BATCH_SIZE]
 
-        analyzed_batch = analyze_batch(gemini_client, batch, start)
+        analyzed_batch = analyze_batch(
+            gemini_client,
+            batch,
+            start,
+        )
 
         analyzed_scenes.extend(analyzed_batch)
 
@@ -25,15 +28,13 @@ def analyze_emotions(gemini_client, narration_script):
 
 
 def analyze_batch(gemini_client, scenes, start_index):
-
     scenes_text = []
 
     for index, scene in enumerate(scenes):
-
         actual_index = start_index + index
 
         scenes_text.append(f"""
-SCENE {actual_index}:
+SCENE {actual_index}
 
 Scene type: {scene["scene_type"]}
 Speaker: {scene["speaker"]}
@@ -41,7 +42,9 @@ Text: {scene["text"]}
 """)
 
     prompt = f"""
-Analyze the emotional state of each scene below.
+You are an expert Emotion Analyzer for an AI audio story.
+
+Analyze the emotional state of EACH scene below.
 
 You MUST return exactly one emotion analysis
 for every scene.
@@ -52,7 +55,9 @@ There are {len(scenes)} scenes in this batch.
 
 Rules:
 
-- Do not rewrite the scenes.
+- Return exactly one result for every scene.
+- Preserve the scene order.
+- Do not rewrite the scene text.
 - Do not modify the scene text.
 - Do not add events.
 - Analyze only the emotion expressed or implied.
@@ -60,8 +65,6 @@ Rules:
 - Intensity must be between 0 and 1.
 - Choose an appropriate speaking pace.
 - Choose an appropriate pause after the scene.
-- Preserve the scene order.
-- Return one result for every scene.
 """
 
     response = gemini_client.models.generate_content(
@@ -69,7 +72,10 @@ Rules:
         contents=prompt,
         config={
             "response_mime_type": "application/json",
-            "response_schema": {"type": "ARRAY", "items": EMOTION_SCHEMA},
+            "response_schema": {
+                "type": "ARRAY",
+                "items": EMOTION_SCHEMA,
+            },
         },
     )
 
@@ -106,6 +112,11 @@ Rules:
         if not 0 <= emotion["pause_after"] <= 3:
             raise ValueError("pause_after must be between 0 and 3.")
 
-        analyzed_scenes.append({**scene, **emotion})
+        analyzed_scenes.append(
+            {
+                **scene,
+                **emotion,
+            }
+        )
 
     return analyzed_scenes

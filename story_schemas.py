@@ -82,3 +82,96 @@ EMOTION_SCHEMA = {
     },
     "required": ["emotion", "intensity", "pace", "pause_after"],
 }
+
+
+"""VOICE_DIRECTOR_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "voice_style": {
+            "type": "STRING",
+            "enum": [
+                "neutral",
+                "warm",
+                "calm",
+                "serious",
+                "dramatic",
+                "breathy",
+                "whisper",
+                "angry",
+                "excited",
+            ],
+        },
+        "pitch": {
+            "type": "STRING",
+            "enum": ["low", "slightly_low", "normal", "slightly_high", "high"],
+        },
+        "speed": {"type": "NUMBER", "minimum": 0.5, "maximum": 2.0},
+        "energy": {"type": "NUMBER", "minimum": 0, "maximum": 1},
+        "breathiness": {"type": "NUMBER", "minimum": 0, "maximum": 1},
+    },
+    "required": ["voice_style", "pitch", "speed", "energy", "breathiness"],
+}
+"""
+
+VOICE_DIRECTOR_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "scenes": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "scene_index": {"type": "INTEGER"},
+                    "voice_style": {
+                        "type": "STRING",
+                        "enum": [
+                            "neutral",
+                            "warm",
+                            "calm",
+                            "serious",
+                            "dramatic",
+                            "breathy",
+                            "whisper",
+                            "angry",
+                            "excited",
+                        ],
+                    },
+                    "pitch": {
+                        "type": "STRING",
+                        "enum": [
+                            "low",
+                            "slightly_low",
+                            "normal",
+                            "slightly_high",
+                            "high",
+                        ],
+                    },
+                    "speed": {
+                        "type": "NUMBER",
+                        "minimum": 0.5,
+                        "maximum": 2.0,
+                    },
+                    "energy": {
+                        "type": "NUMBER",
+                        "minimum": 0,
+                        "maximum": 1,
+                    },
+                    "breathiness": {
+                        "type": "NUMBER",
+                        "minimum": 0,
+                        "maximum": 1,
+                    },
+                },
+                "required": [
+                    "scene_index",
+                    "voice_style",
+                    "pitch",
+                    "speed",
+                    "energy",
+                    "breathiness",
+                ],
+            },
+        },
+    },
+    "required": ["scenes"],
+}

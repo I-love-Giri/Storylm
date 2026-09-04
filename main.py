@@ -15,6 +15,7 @@ from story_storage import (
     save_story_setup,
     save_narration_script,
 )
+from voice_director import direct_voices
 
 
 def get_story_idea():
@@ -127,6 +128,14 @@ if __name__ == "__main__":
             )
 
             print("\n--- EMOTION ANALYSIS ---\n")
+            print(json.dumps(emotion_script, indent=2))
+
+            voice_script = direct_voices(
+                gemini_client,
+                emotion_script,
+            )
+
+            print("\n--- VOICES ANALYSIS ---\n")
             print(json.dumps(emotion_script, indent=2))
 
         except RuntimeError as error:
