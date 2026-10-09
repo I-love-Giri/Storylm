@@ -4,6 +4,7 @@ from openai import OpenAI
 from google import genai
 
 load_dotenv()
+
 api_key = os.getenv("OPENROUTER_API_KEY")
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 groq_api_key = os.getenv("GROQ_API_KEY")
