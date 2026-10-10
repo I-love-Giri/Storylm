@@ -2,6 +2,14 @@ import json
 
 from story_schemas import VOICE_DIRECTOR_SCHEMA
 
+VOICE_FIELDS = (
+    "voice_style",
+    "pitch",
+    "speed",
+    "energy",
+    "breathiness",
+)
+
 
 def direct_voices(client, narration_script):
     scenes = narration_script.get("scenes", [])
@@ -27,41 +35,37 @@ def direct_voices(client, narration_script):
     prompt = f"""
 You are a Voice Director for an AI audio story.
 
-You will receive multiple analyzed scenes.
-
 Your job is to convert the emotion analysis of EACH scene
 into voice performance instructions for a TTS engine.
 
-IMPORTANT:
+IMPORTANT RULES:
 
 - Return exactly one voice direction for every scene.
-- Preserve the scene_index.
-- Do not remove any scene.
-- Do not add any scene.
+- Preserve every scene_index exactly as provided.
+- Do not remove or add scenes.
 - Do not rewrite the story text.
-- Do not modify the emotion.
-- Do not change the intensity.
-- Do not change the pace.
+- Do not modify the emotion, intensity, or pace.
 - Do not invent new emotions.
+- Match the voice direction to the emotion and intensity.
+- Consider whether the speaker is NARRATOR or a character.
+- Keep the voice direction consistent with the scene's context.
 
-The Emotion Analyzer is the source of truth.
+For each scene, return:
 
-For each scene choose:
-
+- scene_index
 - voice_style
 - pitch
 - speed
 - energy
 - breathiness
 
-Rules:
+Numeric constraints:
 
 - speed must be between 0.5 and 2.0
 - energy must be between 0 and 1
 - breathiness must be between 0 and 1
-- Match the voice direction to the given emotion and intensity.
-- Consider whether the speaker is NARRATOR or a character.
-- Keep voice direction consistent with the emotional context.
+
+The Emotion Analyzer is the source of truth.
 
 Scenes:
 
@@ -73,93 +77,104 @@ Scenes:
         contents=prompt,
         config={
             "response_mime_type": "application/json",
-            "response_schema": {
-                "type": "OBJECT",
-                "properties": {
-                    "scenes": {
-                        "type": "ARRAY",
-                        "items": {
-                            "type": "OBJECT",
-                            "properties": {
-                                "scene_index": {"type": "INTEGER"},
-                                "voice_style": {
-                                    "type": "STRING",
-                                    "enum": [
-                                        "neutral",
-                                        "warm",
-                                        "calm",
-                                        "serious",
-                                        "dramatic",
-                                        "breathy",
-                                        "whisper",
-                                        "angry",
-                                        "excited",
-                                    ],
-                                },
-                                "pitch": {
-                                    "type": "STRING",
-                                    "enum": [
-                                        "low",
-                                        "slightly_low",
-                                        "normal",
-                                        "slightly_high",
-                                        "high",
-                                    ],
-                                },
-                                "speed": {
-                                    "type": "NUMBER",
-                                    "minimum": 0.5,
-                                    "maximum": 2.0,
-                                },
-                                "energy": {
-                                    "type": "NUMBER",
-                                    "minimum": 0,
-                                    "maximum": 1,
-                                },
-                                "breathiness": {
-                                    "type": "NUMBER",
-                                    "minimum": 0,
-                                    "maximum": 1,
-                                },
-                            },
-                            "required": [
-                                "scene_index",
-                                "voice_style",
-                                "pitch",
-                                "speed",
-                                "energy",
-                                "breathiness",
-                            ],
-                        },
-                    }
-                },
-                "required": ["scenes"],
-            },
+            "response_schema": VOICE_DIRECTOR_SCHEMA,
         },
     )
 
     if not response.text:
         raise ValueError("Voice Director returned an empty response.")
 
-    voice_directions = json.loads(response.text)
+    try:
+        voice_directions = json.loads(response.text)
+    except json.JSONDecodeError as exc:
+        raise ValueError("Voice Director returned invalid JSON.") from exc
 
-    returned_scenes = voice_directions.get("scenes", [])
+    if not isinstance(voice_directions, dict):
+        raise ValueError("Voice Director response must be a JSON object.")
+
+    returned_scenes = voice_directions.get("scenes")
+
+    if not isinstance(returned_scenes, list):
+        raise ValueError("Voice Director response must contain a scenes list.")
 
     if len(returned_scenes) != len(scenes):
-        raise ValueError("Voice Director returned a different number of scenes.")
+        raise ValueError(
+            f"Expected {len(scenes)} voice directions, "
+            f"but received {len(returned_scenes)}."
+        )
 
-    analyzed_script = []
+    directions_by_index = {}
 
-    for scene, direction in zip(scenes, returned_scenes):
-        analyzed_script.append(
+    for direction in returned_scenes:
+        if not isinstance(direction, dict):
+            raise ValueError("Each voice direction must be a JSON object.")
+
+        scene_index = direction.get("scene_index")
+
+        if type(scene_index) is not int:
+            raise ValueError("Every voice direction must have an integer scene_index.")
+
+        if not 0 <= scene_index < len(scenes):
+            raise ValueError(f"Invalid scene_index returned: {scene_index}.")
+
+        if scene_index in directions_by_index:
+            raise ValueError(f"Duplicate scene_index returned: {scene_index}.")
+
+        directions_by_index[scene_index] = direction
+
+    expected_indexes = set(range(len(scenes)))
+    returned_indexes = set(directions_by_index)
+
+    if returned_indexes != expected_indexes:
+        missing_indexes = sorted(expected_indexes - returned_indexes)
+
+        raise ValueError(
+            f"Voice Director did not return directions for "
+            f"all scenes. Missing indexes: {missing_indexes}."
+        )
+
+    analyzed_scenes = []
+
+    for index, scene in enumerate(scenes):
+        direction = directions_by_index[index]
+
+        missing_fields = [field for field in VOICE_FIELDS if field not in direction]
+
+        if missing_fields:
+            raise ValueError(
+                f"Voice direction for scene {index} is missing "
+                f"fields: {missing_fields}."
+            )
+
+        speed = direction["speed"]
+        energy = direction["energy"]
+        breathiness = direction["breathiness"]
+
+        if (
+            isinstance(speed, bool)
+            or not isinstance(speed, (int, float))
+            or not 0.5 <= speed <= 2.0
+        ):
+            raise ValueError(f"Invalid speed for scene {index}: {speed}.")
+
+        for field, value in (
+            ("energy", energy),
+            ("breathiness", breathiness),
+        ):
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not 0 <= value <= 1
+            ):
+                raise ValueError(f"Invalid {field} for scene {index}: {value}.")
+
+        voice_settings = {field: direction[field] for field in VOICE_FIELDS}
+
+        analyzed_scenes.append(
             {
                 **scene,
-                **{
-                    key: value
-                    for key, value in direction.items()
-                    if key != "scene_index"
-                },
+                **voice_settings,
             }
         )
 
-    return {"scenes": analyzed_script}
+    return {"scenes": analyzed_scenes}
