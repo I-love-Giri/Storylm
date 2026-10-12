@@ -16,6 +16,7 @@ from story_storage import (
     save_narration_script,
 )
 from voice_director import direct_voices
+from tts_engine import generate_audio
 
 
 def get_story_idea():
@@ -127,16 +128,23 @@ if __name__ == "__main__":
                 narration_script,
             )
 
-            print("\n--- EMOTION ANALYSIS ---\n")
-            print(json.dumps(emotion_script, indent=2))
+            # print("\n--- EMOTION ANALYSIS ---\n")
+            # print(json.dumps(emotion_script, indent=2))
 
             voice_script = direct_voices(
                 gemini_client,
                 emotion_script,
             )
 
-            print("\n--- VOICES ANALYSIS ---\n")
-            print(json.dumps(emotion_script, indent=2))
+            print("\n--- Voice Directions ---")
+            print(voice_script)
+
+            audio_path = story_folder / f"chapter_{chapter}_audio.wav"
+
+            generate_audio(
+                voice_script,
+                audio_path,
+            )
 
         except RuntimeError as error:
             print(f"\nNarration script was not created: {error}")
