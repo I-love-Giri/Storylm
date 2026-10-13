@@ -16,7 +16,8 @@ from story_storage import (
     save_narration_script,
 )
 from voice_director import direct_voices
-from tts_engine import generate_audio
+from tts_engine import generate_audio, assign_character_voices
+from story_storage import save_json
 
 
 def get_story_idea():
@@ -85,6 +86,19 @@ if __name__ == "__main__":
         print(f"\nContinuing: {story_folder.name}")
         print(f"Starting from Chapter {chapter}")
 
+    # Assign voices once and preserve them across chapters.
+    voice_map = assign_character_voices(characters)
+
+    # Save the assigned voices for future chapters.
+    save_json(story_folder / "characters.json", characters)
+
+    print("\n--- Character Voice Assignments ---")
+
+    for character_name, voice_id in voice_map.items():
+        print(f"{character_name}: {voice_id}")
+
+    print(f"NARRATOR: en-US-AndrewNeural")
+
     while True:
         story = generate_story(
             client,
@@ -141,10 +155,7 @@ if __name__ == "__main__":
 
             audio_path = story_folder / f"chapter_{chapter}_audio.wav"
 
-            generate_audio(
-                voice_script,
-                audio_path,
-            )
+            generate_audio(voice_script, audio_path, voice_map)
 
         except RuntimeError as error:
             print(f"\nNarration script was not created: {error}")

@@ -22,13 +22,64 @@ CHARACTER_VOICES = [
     "en-US-EmmaNeural",
 ]
 
+
+def assign_character_voices(characters):
+    """Assign and preserve a consistent voice for each character."""
+
+    used_voices = set()
+    voice_map = {}
+
+    # First, preserve previously assigned voices.
+    for character in characters:
+        name = character.get("name", "").strip()
+        voice_id = character.get("voice_id")
+
+        if name and voice_id in CHARACTER_VOICES and voice_id not in used_voices:
+            voice_map[name] = voice_id
+            used_voices.add(voice_id)
+
+    # Then, assign voices to characters without a valid assignment.
+    for character in characters:
+        name = character.get("name", "").strip()
+
+        if not name:
+            continue
+
+        if name in voice_map:
+            character["voice_id"] = voice_map[name]
+            continue
+
+        available_voices = [
+            voice for voice in CHARACTER_VOICES if voice not in used_voices
+        ]
+
+        if available_voices:
+            # Pick a voice deterministically.
+            character_hash = hashlib.sha256(name.casefold().encode("utf-8")).hexdigest()
+
+            voice_index = int(character_hash, 16) % len(available_voices)
+            voice_id = available_voices[voice_index]
+            used_voices.add(voice_id)
+        else:
+            # More characters than available voices: reuse one.
+            character_hash = hashlib.sha256(name.casefold().encode("utf-8")).hexdigest()
+
+            voice_index = int(character_hash, 16) % len(CHARACTER_VOICES)
+            voice_id = CHARACTER_VOICES[voice_index]
+
+        character["voice_id"] = voice_id
+        voice_map[name] = voice_id
+
+    return voice_map
+
+
 # Optional overrides for important characters.
 # Add your character names here when needed.
-CHARACTER_VOICE_MAP = {
+"""CHARACTER_VOICE_MAP = {
     "Alex": "en-US-GuyNeural",
     "Sarah": "en-US-AriaNeural",
 }
-
+"""
 # Convert Voice Director pitch labels into Edge TTS pitch.
 PITCH_MAP = {
     "low": "-20Hz",
@@ -39,19 +90,18 @@ PITCH_MAP = {
 }
 
 
-def get_voice(scene):
-    """Select a consistent voice based on the scene speaker."""
+def get_voice(scene, voice_map=None):
+    """Get the consistent voice for a scene's speaker."""
 
     speaker = str(scene.get("speaker", "NARRATOR")).strip()
 
     if speaker.upper() == "NARRATOR":
         return NARRATOR_VOICE
 
-    # Allow manually configured character voices.
-    if speaker in CHARACTER_VOICE_MAP:
-        return CHARACTER_VOICE_MAP[speaker]
+    if voice_map and speaker in voice_map:
+        return voice_map[speaker]
 
-    # Stable mapping: the same character name gets the same voice.
+    # Fallback for speakers not present in the character list.
     character_hash = hashlib.sha256(speaker.casefold().encode("utf-8")).hexdigest()
 
     voice_index = int(character_hash, 16) % len(CHARACTER_VOICES)
@@ -67,7 +117,7 @@ def get_pitch(scene):
     return PITCH_MAP.get(pitch, "+0Hz")
 
 
-async def generate_scene_audio(scene, output_path):
+async def generate_scene_audio(scene, output_path, voice_map=None):
     """Generate audio for one scene."""
 
     text = str(scene.get("text", "")).strip()
@@ -75,7 +125,7 @@ async def generate_scene_audio(scene, output_path):
     if not text:
         return False
 
-    voice = get_voice(scene)
+    voice = get_voice(scene, voice_map)
 
     # Voice Director speed: 1.0 means normal speed.
     speed = float(scene.get("speed", 1.0))
@@ -99,7 +149,7 @@ async def generate_scene_audio(scene, output_path):
     return True
 
 
-async def generate_all_scenes(scenes, temp_path):
+async def generate_all_scenes(scenes, temp_path, voice_map=None):
     """Generate all scene audio sequentially in one event loop."""
 
     generated_scenes = []
@@ -110,12 +160,12 @@ async def generate_all_scenes(scenes, temp_path):
 
         audio_path = temp_path / f"scene_{index}.mp3"
 
-        await generate_scene_audio(scene, audio_path)
+        await generate_scene_audio(scene, audio_path, voice_map)
 
         generated_scenes.append((scene, audio_path))
 
         speaker = scene.get("speaker", "NARRATOR")
-        voice = get_voice(scene)
+        voice = get_voice(scene, voice_map)
 
         print(
             f"Scene {index + 1}/{len(scenes)} | "
@@ -128,7 +178,7 @@ async def generate_all_scenes(scenes, temp_path):
     return generated_scenes
 
 
-def generate_audio(voice_script, output_path):
+def generate_audio(voice_script, output_path, voice_map=None):
     """Generate a complete story chapter as a WAV file."""
 
     scenes = voice_script.get("scenes", [])
@@ -145,7 +195,9 @@ def generate_audio(voice_script, output_path):
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
 
-        generated_scenes = asyncio.run(generate_all_scenes(scenes, temp_path))
+        generated_scenes = asyncio.run(
+            generate_all_scenes(scenes, temp_path, voice_map)
+        )
 
         if not generated_scenes:
             raise ValueError("No scenes contained text to speak.")
