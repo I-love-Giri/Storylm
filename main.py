@@ -2,7 +2,7 @@ import json
 from character_manager import get_characters
 from emotion_analyzer import analyze_emotions
 from story_generator import generate_story
-from config import client, gemini_client
+from config import client, gemini_client, groq_client
 from story_memory import update_memory
 from story_planner import create_story_plan
 from narrator_agent import create_narration_script
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     for character_name, voice_id in voice_map.items():
         print(f"{character_name}: {voice_id}")
 
-    print(f"NARRATOR: en-US-AndrewNeural")
+    # print(f"NARRATOR: en-US-AndrewNeural")
 
     while True:
         story = generate_story(
@@ -112,7 +112,7 @@ if __name__ == "__main__":
         print(story)
 
         memory = update_memory(
-            client,
+            groq_client,
             story,
             characters,
             memory,
