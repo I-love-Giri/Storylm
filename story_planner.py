@@ -52,7 +52,13 @@ def create_story_plan(client, story_idea):
                 ],
             )
 
-            return json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+
+            print("\n--- RAW API RESPONSE ---")
+            print(content)
+            print("--- END RESPONSE ---\n")
+
+            return json.loads(content)
 
         except Exception as error:
             if attempt < max_attempt:

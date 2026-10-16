@@ -17,7 +17,7 @@ def update_memory(client, story, characters, previous_memory: list | None = None
     for attempt in range(1, max_attempts + 1):
         try:
             response = client.chat.completions.create(
-                model="openrouter/free",
+                model="openai/gpt-oss-20b",
                 max_tokens=2500,
                 messages=[
                     {
